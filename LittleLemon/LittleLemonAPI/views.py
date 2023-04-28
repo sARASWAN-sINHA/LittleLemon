@@ -172,11 +172,8 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             permission_classes += [IsAuthenticated, IsCustomer]
         else:
             permission_classes += [IsAuthenticated, (IsCustomer| IsDeliveryCrew| IsManager| IsAdminUser)]
-        
-        # print('applied permission classes', permission_classes)
 
         return [permission_class() for permission_class in permission_classes]
-        # print('applied permission classes', x)
         
 
 
@@ -238,6 +235,7 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
     def update(self, request, pk, *args, **kwargs):
         if request.user.groups.filter(name='Customer').exists():
             return super().update(request, args, kwargs)
+        return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
 
         
     def partial_update(self, request, pk, *args, **kwargs):
