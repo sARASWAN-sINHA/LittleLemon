@@ -1,9 +1,11 @@
+from django.forms import ValidationError
 from rest_framework import serializers
 
 from django.contrib.auth.models import User
 
-from .models import Cart, MenuItem, Category, Order
-
+from .models import Cart, MenuItem, Category, Order, OrderItem
+from django.shortcuts import get_object_or_404
+from rest_framework import status
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -65,11 +67,43 @@ class CartSerializer(serializers.ModelSerializer):
         return cart_item
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderItemSerializer(serializers.ModelSerializer):
+    menu_item = MenuItemSerilaizer(read_only=True)
     class Meta:
-        model = Order
-        fields = ('id', 'user','delivery_crew','status','total','date')
-
-        
+        model = OrderItem
+        fields = ('order','menu_item','quantity',)
     
 
+        
+
+
+class OrderSerializer(serializers.ModelSerializer):
+
+    order_items = serializers.SerializerMethodField()
+    class Meta:
+        model = Order
+        fields = ('id', 'user','delivery_crew','status', 'order_items', 'total','date')
+        # read_only = ['total', 'delivery_crew','status', 'order_items', 'total','date']
+
+
+    def get_order_items(self, order):
+        order_items = order.order_item.all()
+        return OrderItemSerializer(instance=order_items, many=True).data
+
+
+class ManagerOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ('id','delivery_crew','status')
+
+    def validate(self, data):
+        delivery_crew = data.get('delivery_crew', None)
+        if delivery_crew.groups.filter(name='Delivery Crew').exists() == False:
+            raise ValidationError(message={"message": "Should be a delivery agent!"})
+        return super().validate(data)
+
+
+class DeliveryCrewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ('id','status',)

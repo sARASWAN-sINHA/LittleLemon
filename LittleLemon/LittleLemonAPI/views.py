@@ -11,7 +11,7 @@ from django.db.models import F, Sum, Q
 
 
 
-from .serializers import MenuItemSerilaizer, OrderSerializer, UserSerializer, CartSerializer
+from .serializers import DeliveryCrewSerializer, ManagerOrderSerializer, MenuItemSerilaizer, OrderSerializer, UserSerializer, CartSerializer
 from .models import MenuItem, Cart, OrderItem, Order
 from .permissions import IsDeliveryCrew, IsManager, IsCustomer
 
@@ -234,14 +234,8 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 
     def update(self, request, pk, *args, **kwargs):
         if request.user.groups.filter(name='Customer').exists():
-            return super().update(request, args, kwargs)
-        return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
-
-        
-    def partial_update(self, request, pk, *args, **kwargs):
-        if request.user.groups.filter(name='Customer').exists():
-            return super().partial_update(request, args, kwargs)
-        
+            return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
+                
         if request.user.groups.filter(Q(name='Manager') | Q(name='Delivery Crew')).exists():
             try:
                 data = self.get_queryset().filter(id=pk)
@@ -250,7 +244,14 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
                     return Response({'message': 'No orders found!'}, status=status.HTTP_404_NOT_FOUND)
                 
                 order_item = data.first()
-                serialized_order_item = OrderSerializer(instance=order_item, data=request.data)
+                serialized_order_item = None
+
+                if request.user.groups.filter(name='Manager').exists():
+                    serialized_order_item = ManagerOrderSerializer(instance=order_item, data=request.data, partial=True)
+                if request.user.groups.filter(name='Delivery Crew').exists():
+                    serialized_order_item = DeliveryCrewSerializer(instance=order_item, data=request.data, partial=True)
+                
+                
                 serialized_order_item.is_valid(raise_exception=True)
                 serialized_order_item.save()
                 return Response(serialized_order_item.data, status=status.HTTP_200_OK)
