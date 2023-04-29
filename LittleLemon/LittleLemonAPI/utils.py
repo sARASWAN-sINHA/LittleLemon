@@ -1,6 +1,9 @@
 
 from django.contrib.auth.models import Group, User
 
+
+from .models import Cart
+
 def get_group(group_name: str) -> Group:
     return Group.objects.get(name=group_name)
 
@@ -34,6 +37,8 @@ def add_user_to_manager_group(user: User, group: Group):
 def add_user_to_delivery_crew_group(user: User, group: Group):
     add_user_to_group(user, group)
 
+def get_user_cart(user: User):
+    return Cart.objects.filter(user=user)
 
 
 

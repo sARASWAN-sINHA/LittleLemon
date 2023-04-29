@@ -30,7 +30,7 @@ from .permissions import (IsDeliveryCrew,
 
 from .utils import (get_group, 
                     belongs_to_delivery_crew_group, 
-                    belongs_to_manager_group,
+                    belongs_to_manager_group, get_user_cart,
                     remove_user_from_group,
                     add_user_to_manager_group,
                     add_user_to_delivery_crew_group)
@@ -165,7 +165,7 @@ class CartViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, (IsCustomer | IsAdminUser)]
     
     def get_queryset(self):
-        return Cart.objects.filter(user = self.request.user)
+        return get_user_cart(self.request.user)
     
     def create(self, request, *args, **kwargs):
 
@@ -177,7 +177,7 @@ class CartViewSet(ListModelMixin, GenericViewSet):
     @action(detail=False, methods=['DELETE'])
     def clear_cart(self, request, *args, **kwargs):
         try:
-            Cart.objects.filter(user = request.user).delete()
+            self.get_queryset().delete()
             return Response({'message': 'Cart cleared!'}, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({'message': f'Could not clear cart. Error:- {str(e)}'})
@@ -201,12 +201,11 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 
 
     def get_queryset(self):
-        if self.request.user.groups.filter(name = 'Manager').exists() or self.request.user.is_superuser:
+        if belongs_to_manager_group(self.request.user) or self.request.user.is_superuser:
             return Order.objects.all()
-        elif self.request.user.groups.filter(name = 'Delivery Crew').exists():
+        elif belongs_to_delivery_crew_group(self.request.user):
             return Order.objects.filter(delivery_crew = self.request.user)
-        else:
-            return Order.objects.filter(user = self.request.user)
+        return Order.objects.filter(user = self.request.user)
     
     def create(self, request, *args, **kwargs):
 
