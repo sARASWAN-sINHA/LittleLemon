@@ -1,11 +1,9 @@
-from django.forms import ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 
 from django.contrib.auth.models import User
 
 from .models import Cart, MenuItem, Category, Order, OrderItem
-from django.shortcuts import get_object_or_404
-from rest_framework import status
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
