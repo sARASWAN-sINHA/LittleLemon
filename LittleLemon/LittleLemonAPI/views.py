@@ -28,12 +28,12 @@ from .permissions import (IsDeliveryCrew,
                           IsManager, 
                           IsCustomer)
 
-from .utils import (get_group,
-                    belongs_to_customer_group, 
+from .utils import (get_group, 
                     belongs_to_delivery_crew_group, 
                     belongs_to_manager_group,
                     remove_user_from_group,
-                    add_user_to_group)
+                    add_user_to_manager_group,
+                    add_user_to_delivery_crew_group)
 
 class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
@@ -78,12 +78,11 @@ class ManagerViewSet(ListModelMixin, GenericViewSet):
     
 
     def create(self, request, *args, **kwargs):
-
         try:
             user = self.get_object()
             if belongs_to_manager_group(user):
                 return Response({'message': 'user already present in manager group'}, status=status.HTTP_200_OK)
-            add_user_to_group(user, self.manager_group)
+            add_user_to_manager_group(user, self.manager_group)
             return Response({'message': 'user added to the manager group'}, status=status.HTTP_201_CREATED)
         except :
             return Response({'message': 'Please provide a valid userID! User could not be added to the manager group'}, status=status.HTTP_400_BAD_REQUEST)
@@ -105,44 +104,48 @@ class DeliveryCrewViewSet(ListModelMixin, GenericViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser | IsManager]
 
-    delivery_crew_group = Group.objects.get(name="Delivery Crew")
+    delivery_crew_group = get_group(group_name='Delivery Crew')
 
     def get_queryset(self):
         delivery_crew = [dc for dc in self.delivery_crew_group.user_set.all()]
         return delivery_crew
+    
+
+    
+    def get_object(self):
+        user_id = None
+        if self.action == 'destroy':
+            user_id = self.kwargs.get("pk", None)
+        else:
+            user_id = self.request.data.get('id', None)
+        
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            return user
+        raise ValidationError({"id": "Id cannot be empty/NULL/None."})
+
 
     def create(self, request, *args, **kwargs):
-        user_id = request.data.get('id', None)
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-        
-
+        try:
+            user = self.get_object()
             if belongs_to_manager_group(user):
                 return Response({'message': 'user in manager group! Cannot perform this action!'}, status=status.HTTP_400_BAD_REQUEST)
-
-            
-            if user.groups.filter(name="Delivery Crew").exists():
-                 return Response({'message': 'user already present in delivery crew group'}, status=status.HTTP_200_OK)
-            
-            user.groups.add(self.delivery_crew_group)
+            if belongs_to_delivery_crew_group(user):
+                return Response({'message': 'user already present in delivery crew group'}, status=status.HTTP_200_OK)
+            add_user_to_delivery_crew_group(user, self.delivery_crew_group)
             return Response({'message': 'user added to the delivery crew group'}, status=status.HTTP_201_CREATED)
-        
-        return Response({'message': 'Please provide a valid userID! User could not be added to the delivery crew group'}, status=status.HTTP_400_BAD_REQUEST)
+        except :
+            return Response({'message': 'Please provide a valid userID! User could not be added to the delivery crew group'}, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
-        user_id = kwargs.get('pk', None)
-
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-
-            if user.groups.filter(name="Delivery Crew").exists() == False:
+        try:
+            user = self.get_object()
+            if not belongs_to_delivery_crew_group(user):
                 return Response({'message': 'User is not among Delivery Crew to begin with!'}, status=status.HTTP_200_OK)
-            
-            user.groups.remove(self.delivery_crew_group)
-            self.delivery_crew_group.user_set.remove(user)
+            remove_user_from_group(user, self.delivery_crew_group)
             return Response({'message': 'user removed from the delivery crew group group'}, status=status.HTTP_201_CREATED)
-        
-        return Response({'message': 'Please provide a valid userID! User could not be removed from the delivery crew\'s group'}, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response({'message': 'Please provide a valid userID! User could not be removed from the delivery crew\'s group'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomerView(ListAPIView):

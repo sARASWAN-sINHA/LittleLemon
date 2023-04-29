@@ -20,11 +20,20 @@ def remove_user_from_group(user: User, group: Group):
 def add_user_to_group(user: User, group: Group):
     user.groups.add(group)
 
-    if belongs_to_delivery_crew_group(user):
-        delivery_group = get_group(group_name='Delivery Crew')
-        remove_user_from_group(user, delivery_group)
     if belongs_to_customer_group(user):
         customer_group = get_group(group_name='Customer')
         remove_user_from_group(user, customer_group)
+
+def add_user_to_manager_group(user: User, group: Group):
+    add_user_to_group(user, group)
+
+    if belongs_to_delivery_crew_group(user):
+        delivery_group = get_group(group_name='Delivery Crew')
+        remove_user_from_group(user, delivery_group)
+
+def add_user_to_delivery_crew_group(user: User, group: Group):
+    add_user_to_group(user, group)
+
+
 
 
