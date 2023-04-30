@@ -8,8 +8,10 @@ from django.contrib.auth.models import Group, User
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import F, Sum, Q
-
+from django.db.models import F, Sum
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 from .serializers import (DeliveryCrewSerializer, 
@@ -20,7 +22,6 @@ from .serializers import (DeliveryCrewSerializer,
                           CartSerializer)
 
 from .models import (MenuItem,
-                     Cart, 
                      OrderItem, 
                      Order)
 
@@ -38,6 +39,11 @@ from .utils import (belongs_to_customer_group, check_empty_cart, clear_user_cart
 class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerilaizer
+    filter_backends=(OrderingFilter, SearchFilter, DjangoFilterBackend)
+    filterset_fields = ('category')
+    ordering_fields = ['price']
+    search_fields = ['title']
+    pagination_class = PageNumberPagination
 
     def get_permissions(self):
 
@@ -195,8 +201,6 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             permission_classes += [IsAuthenticated, (IsCustomer| IsDeliveryCrew| IsManager| IsAdminUser)]
 
         return [permission_class() for permission_class in permission_classes]
-        
-
 
     def get_queryset(self):
         if belongs_to_manager_group(self.request.user) or self.request.user.is_superuser:
@@ -206,7 +210,6 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
         elif belongs_to_customer_group(self.request.user):
             return Order.objects.filter(user = self.request.user)
         return Order.objects.none()
-        
     
     def create(self, request, *args, **kwargs):
         if check_empty_cart(request.user):
