@@ -28,7 +28,7 @@ from .permissions import (IsDeliveryCrew,
                           IsManager, 
                           IsCustomer)
 
-from .utils import (get_group, 
+from .utils import (belongs_to_customer_group, check_empty_cart, clear_user_cart, get_group, 
                     belongs_to_delivery_crew_group, 
                     belongs_to_manager_group, get_user_cart,
                     remove_user_from_group,
@@ -110,8 +110,6 @@ class DeliveryCrewViewSet(ListModelMixin, GenericViewSet):
         delivery_crew = [dc for dc in self.delivery_crew_group.user_set.all()]
         return delivery_crew
     
-
-    
     def get_object(self):
         user_id = None
         if self.action == 'destroy':
@@ -152,7 +150,7 @@ class CustomerView(ListAPIView):
     serializer_class = UserSerializer
     permission_classes = (IsAdminUser, )
     
-    customer_group = Group.objects.get(name='Customer')
+    customer_group = get_group(group_name='Customer')
     
     def get_queryset(self):
         customers = [customer for customer in self.customer_group.user_set.all()]
@@ -177,8 +175,8 @@ class CartViewSet(ListModelMixin, GenericViewSet):
     @action(detail=False, methods=['DELETE'])
     def clear_cart(self, request, *args, **kwargs):
         try:
-            self.get_queryset().delete()
-            return Response({'message': 'Cart cleared!'}, status=status.HTTP_204_NO_CONTENT)
+            response_message = clear_user_cart(request.user)
+            return Response({'message': response_message}, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({'message': f'Could not clear cart. Error:- {str(e)}'})
         
@@ -205,32 +203,27 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             return Order.objects.all()
         elif belongs_to_delivery_crew_group(self.request.user):
             return Order.objects.filter(delivery_crew = self.request.user)
-        return Order.objects.filter(user = self.request.user)
+        elif belongs_to_customer_group(self.request.user):
+            return Order.objects.filter(user = self.request.user)
+        return Order.objects.none()
+        
     
     def create(self, request, *args, **kwargs):
-
-        cart_items = Cart.objects.filter(user = request.user)
-        
-        if not cart_items.exists():
+        if check_empty_cart(request.user):
             return Response({'message': 'Cart is empty!'}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             order = Order.objects.create(user = request.user)
         except Exception as e:
             return Response({'message': f'Failed to create order. Error:- {str(e)}'})
 
         try:    
+            cart_items = get_user_cart(user=request.user)
             order_items = [OrderItem(order=order, menu_item=cart_item.menu_item, quantity=cart_item.quantity) for cart_item in cart_items]
             OrderItem.objects.bulk_create(order_items)
-
             order.total = cart_items.aggregate(amt=Sum(F('menu_item__price') * F('quantity')))['amt']
-            
             order.save()
-
             serialized_order = OrderSerializer(instance=order)
-
-            Cart.objects.filter(user = request.user).delete()
-
+            clear_user_cart(user=request.user)
             return Response(serialized_order.data, status=status.HTTP_201_CREATED)
         
         except Exception as e:
@@ -238,39 +231,26 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             return Response({'message': f'Action could not be completed. Error:- {str(e)}'})
         
     def retrieve(self, request, pk, *args, **kwargs):
-        if request.user.groups.filter(Q(name='Customer') | Q(name='Manager')).exists() or request.user.is_superuser:
+        if belongs_to_customer_group(request.user) or belongs_to_manager_group(request.user) or request.user.is_superuser:
             try:
-                order_item = self.get_queryset().filter(id=pk)
-                
-                if not order_item.exists():
-                    return Response({'message': 'No orders found!'}, status=status.HTTP_404_NOT_FOUND)
-                
-                order_item = order_item.first()
+                order_item = self.get_object()
                 serialized_order_item = OrderSerializer(instance=order_item)
                 return Response(serialized_order_item.data, status=status.HTTP_200_OK)
-            
             except Exception as e:
                 return Response({'message': f'Failed to retrieve data. Error:- {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)     
         else:
             return Response({'message': 'Only Managers and Customers are allowed to perform this action'}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk, *args, **kwargs):
-        if request.user.groups.filter(name='Customer').exists():
-            return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
                 
-        if request.user.groups.filter(Q(name='Manager') | Q(name='Delivery Crew')).exists():
+        if belongs_to_delivery_crew_group(request.user) or belongs_to_manager_group(request.user):
             try:
-                data = self.get_queryset().filter(id=pk)
-
-                if not data.exists():
-                    return Response({'message': 'No orders found!'}, status=status.HTTP_404_NOT_FOUND)
-                
-                order_item = data.first()
+                order_item = self.get_object()
                 serialized_order_item = None
 
-                if request.user.groups.filter(name='Manager').exists():
+                if belongs_to_manager_group(request.user):
                     serialized_order_item = ManagerOrderSerializer(instance=order_item, data=request.data, partial=True)
-                if request.user.groups.filter(name='Delivery Crew').exists():
+                if belongs_to_delivery_crew_group(request.user):
                     serialized_order_item = DeliveryCrewSerializer(instance=order_item, data=request.data, partial=True)
                 
                 
@@ -280,30 +260,8 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             except Exception as e:
                 return Response({'message': f"Failed to update data. Error:- {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         
+        return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
-        
-        
-
-
-
-    
-
-
-
-
-
-
-
-
-
-        
-        
-
-
-        
-
-    
-    
 

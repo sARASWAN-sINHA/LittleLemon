@@ -37,8 +37,20 @@ def add_user_to_manager_group(user: User, group: Group):
 def add_user_to_delivery_crew_group(user: User, group: Group):
     add_user_to_group(user, group)
 
+
 def get_user_cart(user: User):
     return Cart.objects.filter(user=user)
+
+def check_empty_cart(user: User) ->bool:
+    return get_user_cart(user).exists()==False
+
+def clear_user_cart(user: User) -> str:
+    if check_empty_cart(user):
+        return "Cart already empty!"
+    get_user_cart(user).delete()
+    return "Cart cleared!"
+    
+
 
 
 

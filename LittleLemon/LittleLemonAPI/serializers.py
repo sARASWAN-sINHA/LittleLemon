@@ -16,14 +16,14 @@ class MenuItemSerilaizer(serializers.ModelSerializer):
 
     class Meta:
         model = MenuItem
-        fields = ['title', 'price','featured','category', 'category_id','id']
+        fields = ['id', 'title', 'price','featured','category', 'category_id',]
 
   
     
     def to_representation(self, item):
         item = super().to_representation(item)
         category_data = item.pop('category')
-        item['category'] = category_data.get('title', "No catgory found!!")
+        item['category'] = category_data.get('title', "No category found!!")
         return item
     
 class UserSerializer(serializers.ModelSerializer):
@@ -55,8 +55,9 @@ class CartSerializer(serializers.ModelSerializer):
         if user_full_name == " ": 
            user_full_name = "User"
 
-        
-        user_email = cart_user.get('email', "No email linked to  the user") 
+        user_email = cart_user.get('email', "No email linked to this user account") 
+        if user_email == '':
+            user_email = "No email linked to this user account"
 
         cart_item['user'] = {
             'full_name': user_full_name,
