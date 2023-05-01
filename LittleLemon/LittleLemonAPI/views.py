@@ -10,10 +10,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import F, Sum
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 
 
+from .pagination import FivePerPagePagination
 from .serializers import (CategorySerializer, 
                           DeliveryCrewOrderSerializer, 
                           ManagerOrderSerializer, 
@@ -46,7 +46,7 @@ class MenuItemViewSet(ModelViewSet):
     filterset_fields = ('category', 'featured')
     ordering_fields = ['price']
     search_fields = ['title']
-    pagination_class = PageNumberPagination
+    pagination_class = FivePerPagePagination
 
     def get_permissions(self):
 
@@ -192,7 +192,10 @@ class CartViewSet(ListModelMixin, GenericViewSet):
 
 
 class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
-    
+
+    filter_backends=(OrderingFilter, SearchFilter, DjangoFilterBackend)
+    filterset_fields = ('date', 'status')
+    ordering_fields = ['total']
     serializer_class = OrderSerializer
 
     def get_permissions(self):
