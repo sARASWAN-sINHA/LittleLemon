@@ -53,7 +53,7 @@ class MenuItemViewSet(ModelViewSet):
         permission_classes = []
 
         if self.request.method in SAFE_METHODS:
-            permission_classes +=  [IsAuthenticated, (IsAdminUser| IsManager| IsDeliveryCrew | IsCustomer )]
+            permission_classes =  [] # Anybody can view Menu Items.
         else:
             permission_classes +=  [IsAuthenticated, (IsAdminUser | IsManager)]
         
