@@ -105,7 +105,6 @@ class DeliveryCrewOrderSerializer(serializers.ModelSerializer):
         fields = ('id','status',)
 
 class SetFeaturedSerializer(serializers.ModelSerializer):
-    
     class Meta:
         model = MenuItem
         fields = ('featured',)

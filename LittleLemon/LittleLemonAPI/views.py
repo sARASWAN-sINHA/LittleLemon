@@ -37,7 +37,7 @@ from .utils import (belongs_to_customer_group, check_empty_cart, clear_user_cart
                     belongs_to_manager_group, get_user_cart,
                     remove_user_from_group,
                     add_user_to_manager_group,
-                    add_user_to_delivery_crew_group)
+                    add_user_to_delivery_crew_group, toggle_featured)
 
 class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
@@ -284,5 +284,28 @@ class CategoryViewSet(ModelViewSet):
 
 class SetFeaturedView(UpdateAPIView):
     queryset = MenuItem.objects.all()
-    serializer_class = SetFeaturedSerializer
+    serializer_class = MenuItemSerilaizer
     
+
+    def partial_update(self, request, pk, *args, **kwargs):
+
+        try:
+            try:
+                previous_featured_menu_item = self.queryset.filter(featured= True).first()
+                toggle_featured(previous_featured_menu_item)
+            except:
+                return (Response({'message': f'Found an error!, {str(e)}'}))
+                
+            finally:
+                menu_item = get_object_or_404(self.queryset, id=pk)
+                toggle_featured(menu_item)
+
+                serialized_menu_item = self.serializer_class(instance=menu_item)
+                return Response(serialized_menu_item.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": f"Could not set as featured item. Error:- {str(e)}"}, status=status.HTTP_200_OK)
+
+    
+        
+
+        

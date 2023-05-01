@@ -2,7 +2,7 @@
 from django.contrib.auth.models import Group, User
 
 
-from .models import Cart
+from .models import Cart, MenuItem
 
 def get_group(group_name: str) -> Group:
     return Group.objects.get(name=group_name)
@@ -49,6 +49,10 @@ def clear_user_cart(user: User) -> str:
         return "Cart already empty!"
     get_user_cart(user).delete()
     return "Cart cleared!"
+
+def toggle_featured(menu_item: MenuItem):
+    menu_item.featured = not menu_item.featured
+    menu_item.save()
     
 
 
