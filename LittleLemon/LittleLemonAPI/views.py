@@ -40,7 +40,7 @@ class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerilaizer
     filter_backends=(OrderingFilter, SearchFilter, DjangoFilterBackend)
-    filterset_fields = ('category')
+    filterset_fields = ('category', 'featured')
     ordering_fields = ['price']
     search_fields = ['title']
     pagination_class = PageNumberPagination
