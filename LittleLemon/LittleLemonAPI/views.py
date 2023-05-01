@@ -1,10 +1,10 @@
 from rest_framework.exceptions import ValidationError
 from rest_framework.mixins import ListModelMixin, UpdateModelMixin
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, UpdateAPIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
 from rest_framework.decorators import action
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,14 +14,17 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 
 
-from .serializers import (DeliveryCrewSerializer, 
+from .serializers import (CategorySerializer, 
+                          DeliveryCrewOrderSerializer, 
                           ManagerOrderSerializer, 
                           MenuItemSerilaizer, 
                           OrderSerializer, 
+                          SetFeaturedSerializer, 
                           UserSerializer, 
                           CartSerializer)
 
-from .models import (MenuItem,
+from .models import (Category, 
+                     MenuItem,
                      OrderItem, 
                      Order)
 
@@ -254,7 +257,7 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
                 if belongs_to_manager_group(request.user):
                     serialized_order_item = ManagerOrderSerializer(instance=order_item, data=request.data, partial=True)
                 if belongs_to_delivery_crew_group(request.user):
-                    serialized_order_item = DeliveryCrewSerializer(instance=order_item, data=request.data, partial=True)
+                    serialized_order_item = DeliveryCrewOrderSerializer(instance=order_item, data=request.data, partial=True)
                 
                 
                 serialized_order_item.is_valid(raise_exception=True)
@@ -265,6 +268,18 @@ class OrderViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
         
         return Response({"message": "You don't have permission to perform this action."}, status=status.HTTP_400_BAD_REQUEST)
 
+class CategoryViewSet(ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
 
+    def get_permissions(self):
+        permission_classes = [IsAuthenticated]
+        if self.request.method not in  SAFE_METHODS:
+            permission_classes += [IsAdminUser]
+        
+        return [permission_class() for permission_class in permission_classes]
 
-
+class SetFeaturedView(UpdateAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = SetFeaturedSerializer
+    

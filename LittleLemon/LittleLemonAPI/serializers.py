@@ -71,9 +71,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ('order','menu_item','quantity',)
-    
-
-        
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -102,7 +99,14 @@ class ManagerOrderSerializer(serializers.ModelSerializer):
         return super().validate(data)
 
 
-class DeliveryCrewSerializer(serializers.ModelSerializer):
+class DeliveryCrewOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ('id','status',)
+
+class SetFeaturedSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = MenuItem
+        fields = ('featured',)
+        
