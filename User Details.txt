@@ -1,0 +1,45 @@
+
+
+Username:- bigdaddy -> 12345 (password) [SUPERUSER]
+
+
+[
+    
+    {
+        "email": "",
+        "id": 2,
+        "username": "customer2"
+    },
+    {
+        "email": "",
+        "id": 3,
+        "username": "manager1"
+    },
+    {
+        "email": "",
+        "id": 4,
+        "username": "delivery-crew1"
+    },
+    {
+        "email": "",
+        "id": 5,
+        "username": "customer1"
+    },
+    {
+        "email": "",
+        "id": 6,
+        "username": "manager2"
+    },
+    {
+        "email": "",
+        "id": 7,
+        "username": "delivery-crew2"
+    },
+    {
+        "email": "",
+        "id": 9,
+        "username": "test"
+    }
+]
+
+All of them have the same password -> srs1705@s
