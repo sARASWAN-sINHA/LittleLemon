@@ -37,5 +37,5 @@ Here are all the required API routes for this project grouped into several categ
 
 
 ## Note: Some extra 1 or 2 APIs are also added which may not be shown above. Please refer to thr postman collection json added to the respository.
---Please feel free to add some more APIs or update them as you need
+--Please feel free to add more APIs or update them as you need.
 
